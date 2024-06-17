@@ -48,3 +48,9 @@ iframe {
     border: none;
     border-radius: 10px;
 }
+.logo {
+    top: 20px;
+    left: 20px;
+    width: 200px;
+    height: auto;
+}
