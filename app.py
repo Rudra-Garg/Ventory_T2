@@ -9,8 +9,8 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def hello_world():  # home page
-    return 'Hello World!'
+def home_page():  # home page
+    return render_template('index.html')
 
 
 def add_text_to_certificate(candidate_name, candidate_id):
@@ -73,7 +73,6 @@ def create():
     # extract candidate_name and candidate_email from query
     candidate_name = request.args.get('candidate_name')[:20]
     candidate_email = request.args.get('candidate_email')
-
     # generate a unique id for the candidate
     candidate_id = uuid.uuid4().hex
 
@@ -94,34 +93,84 @@ def create():
 
     # Get the public URL of the uploaded PDF
     public_url = blob.public_url
-
+    local_url = "http://127.0.0.1:5000/certificate/" + candidate_id
     # Create a new document in the 'candidates' collection
     details = {
         'candidate_name': candidate_name,
         'candidate_email': candidate_email,
-        'certificate_url': public_url
+        'certificate_url': public_url,
+        'local_url': local_url
     }
     doc_ref = db.collection('candidates').document(candidate_id)
     doc_ref.set(details)
 
-    #return the details of the candidate
+    # return the details of the candidate
     return jsonify(details)
 
 
-@app.route('/certificate/<certificate_id>', methods=['GET'])
-def display_certificate(certificate_id):
-    # Retrieve the document reference for the given certificate ID
-    doc_ref = db.collection('candidates').document(certificate_id)
+@app.route('/certificate/<candidate_id>/', methods=['GET'])
+def get_certificate(candidate_id):
+    doc_ref = db.collection('candidates').document(candidate_id)
+    doc = doc_ref.get()
+    if doc.exists:
+        doc_data = doc.to_dict()
+        return render_template('certificate.html', certificate_url=doc_data['certificate_url'],
+                               certificate_id=candidate_id, candidate_name=doc_data['candidate_name'],
+                               candidate_email=doc_data['candidate_email'])
+    else:
+        return 'Certificate not found', 404
 
-    # Convert the reference to a dictionary
-    doc = doc_ref.get().to_dict()
 
-    # Get the certificate URL from the document
-    certificate_url = doc.get('certificate_url')
+@app.route('/search', methods=['GET'])
+def search_certificate():
+    search_type = request.args.get('type')
+    query = request.args.get('query')
 
-    # Render the template with the certificate URL
-    return render_template('certificate.html', certificate_url=certificate_url)
+    if search_type == 'id':
+        # Search by candidate_id
+        doc_ref = db.collection('candidates').document(query)
+        doc = doc_ref.get()
+        if doc.exists:
+            doc_data = doc.to_dict()
+            return jsonify([{
+                'candidate_name': doc_data['candidate_name'],
+                'candidate_email': doc_data['candidate_email'],
+                'certificate_url': doc_data['certificate_url'],
+                'local_url': doc_data['local_url']
+            }])
+    elif search_type == 'name':
+        # Search by candidate_name with partial matching
+        query_ref = db.collection('candidates').where('candidate_name', '>=', query).where('candidate_name', '<=',
+                                                                                           query + '\uf8ff').stream()
+        results = []
+        for doc in query_ref:
+            doc_data = doc.to_dict()
+            results.append({
+                'candidate_name': doc_data['candidate_name'],
+                'candidate_email': doc_data['candidate_email'],
+                'certificate_url': doc_data['certificate_url'],
+                'local_url': doc_data['local_url']
+            })
+        return jsonify(results)
+    elif search_type == 'email':
+        # Search by candidate_email with partial matching
+        query_ref = db.collection('candidates').where('candidate_email', '>=', query).where('candidate_email', '<=',
+                                                                                            query + '\uf8ff').stream()
+        results = []
+        for doc in query_ref:
+            doc_data = doc.to_dict()
+            results.append({
+                'candidate_name': doc_data['candidate_name'],
+                'candidate_email': doc_data['candidate_email'],
+                'certificate_url': doc_data['certificate_url'],
+                'local_url': doc_data['local_url']
+            })
+        return jsonify(results)
+    else:
+        return jsonify({'error': 'Invalid search type'}), 400
+
+    return jsonify([])
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    app.run(debug=True)

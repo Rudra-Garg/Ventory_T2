@@ -1,10 +1,25 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificate</title>
+    <link rel="stylesheet" href="/static/css/certificate.css">
+    <link rel="icon" type="image/svg+xml" href="https://ventory.in/icon.svg">
 </head>
 <body>
-    <h1 style="text-align: center">Certificate</h1>
-    <iframe src="{{ certificate_url }}" width="100%" height="800"></iframe>
+
+    <div class="container">
+        <div class="details">
+            <img src="/static/logo.png" alt="Logo" class="logo">
+            <h1>Certificate Details</h1>
+            <p><strong>Candidate Name:</strong> {{ candidate_name }}</p>
+            <p><strong>Candidate Email:</strong> {{ candidate_email }}</p>
+            <p><strong>Certificate ID:</strong> {{ certificate_id }}</p>
+        </div>
+        <div class="pdf-viewer">
+            <iframe src="{{ certificate_url }}"></iframe>
+        </div>
+    </div>
 </body>
 </html>
