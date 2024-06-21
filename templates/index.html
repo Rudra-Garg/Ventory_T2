@@ -8,7 +8,9 @@
     <link rel="icon" type="image/svg+xml" href="https://ventory.in/icon.svg">
 </head>
 <body>
-<img src="/static/logo.png" alt="Logo" class="logo">
+<div class="logo-container">
+    <img src="/static/logo.png" alt="Logo" class="logo">
+</div>
 <div class="container">
     <div class="form-container">
         <h1>Create Certificate</h1>
@@ -21,7 +23,10 @@
                 <label for="email">Email:</label>
                 <input type="email" id="email" name="email" required>
             </div>
-            <button type="submit" class="btn">Create Certificate</button>
+            <button type="submit" class="btn">
+                <span class="btn-text">Create Certificate</span>
+                <span class="loading-icon hidden"></span>
+            </button>
         </form>
         <div id="createMessage" class="hidden">
             <p>Certificate created! <a id="certificateLink" href="" target="_blank">Click here to view it</a></p>
@@ -43,16 +48,17 @@
                 <label for="searchInput">Search:</label>
                 <input type="text" id="searchInput" name="searchInput" required>
             </div>
-            <button type="submit" class="btn">Search</button>
+            <button type="submit" class="btn">
+                <span class="btn-text">Search</span>
+                <span class="loading-icon hidden"></span>
+            </button>
         </form>
         <div id="searchResults" class="hidden">
             <h3>Search Results:</h3>
             <ul id="certificateList"></ul>
         </div>
     </div>
-
 </div>
 <script src="/static/script.js"></script>
 </body>
 </html>
-
