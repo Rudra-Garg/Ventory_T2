@@ -1,7 +1,10 @@
 document.addEventListener("DOMContentLoaded", function () {
+    const authForm = document.getElementById("authForm");
+    const authContainer = document.getElementById("authContainer");
+    const mainContainer = document.getElementById("mainContainer");
     const certificateForm = document.getElementById("certificateForm");
     const searchForm = document.getElementById("searchForm");
-
+    let authKey = document.getElementById("authKey").value;
     function toggleLoading(button, isLoading) {
         const btnText = button.querySelector(".btn-text");
         const loadingIcon = button.querySelector(".loading-icon");
@@ -17,6 +20,36 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    authForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        authKey = document.getElementById("authKey").value;
+        const submitButton = authForm.querySelector("button[type='submit']");
+        toggleLoading(submitButton, true);
+
+        fetch('/auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ auth_key: authKey }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            toggleLoading(submitButton, false);
+            if (data.success) {
+                authContainer.classList.add("hidden");
+                mainContainer.classList.remove("hidden");
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch((error) => {
+            toggleLoading(submitButton, false);
+            console.error('Error:', error);
+            alert("An error occurred during authentication.");
+        });
+    });
+
     certificateForm.addEventListener("submit", function (event) {
         event.preventDefault();
         const submitButton = certificateForm.querySelector("button[type='submit']");
@@ -24,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const name = document.getElementById('name').value;
         const email = document.getElementById('email').value;
-        fetch(`/create?candidate_name=${name}&candidate_email=${email}`)
+        fetch(`/create?candidate_name=${encodeURIComponent(name)}&candidate_email=${encodeURIComponent(email)}&auth_key=${authKey}`)
             .then(response => response.json())
             .then(data => {
                 toggleLoading(submitButton, false);
@@ -35,11 +68,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     createMessageDiv.classList.remove('hidden');
                 } else {
                     console.error('Invalid response:', data);
+                    alert("An error occurred while creating the certificate.");
                 }
             })
             .catch(error => {
                 toggleLoading(submitButton, false);
                 console.error('Error:', error);
+                alert("An error occurred while creating the certificate.");
             });
     });
 
@@ -53,7 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const searchResultsDiv = document.getElementById('searchResults');
         const certificateList = document.getElementById('certificateList');
 
-        fetch(`/search?type=${searchType}&query=${searchInput}`)
+        fetch(`/search?type=${encodeURIComponent(searchType)}&query=${encodeURIComponent(searchInput)}&auth_key=${authKey}`)
             .then(response => response.json())
             .then(data => {
                 toggleLoading(submitButton, false);
@@ -79,6 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(error => {
                 toggleLoading(submitButton, false);
                 console.error('Error:', error);
+                alert("An error occurred while searching for certificates.");
             });
     });
 });

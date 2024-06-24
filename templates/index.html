@@ -11,7 +11,21 @@
 <div class="logo-container">
     <img src="/static/logo.png" alt="Logo" class="logo">
 </div>
-<div class="container">
+<div id="authContainer" class="auth-container">
+    <h2>Enter Authentication Key</h2>
+    <form id="authForm">
+        <div class="form-group">
+            <label for="authKey">Auth Key:</label>
+            <input type="password" id="authKey" name="authKey" required>
+        </div>
+        <button type="submit" class="btn">
+            <span class="btn-text">Authenticate</span>
+            <span class="loading-icon hidden"></span>
+        </button>
+    </form>
+</div>
+
+<div id="mainContainer" class="container hidden">
     <div class="form-container">
         <h1>Create Certificate</h1>
         <form id="certificateForm">

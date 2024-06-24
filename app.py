@@ -3,12 +3,29 @@ import cv2
 import uuid
 from PIL import Image
 import img2pdf
+from google.cloud.firestore_v1 import FieldFilter
+
 from firebase_config import bucket, db
 
 app = Flask(__name__)
 
+AUTH_KEY = uuid.uuid4().hex
+print("Auth Key:", AUTH_KEY)
 
-@app.route('/')
+
+@app.route('/auth', methods=['POST'])
+def authenticate():
+    data = request.get_json()
+    if data and 'auth_key' in data:
+        if data['auth_key'] == AUTH_KEY:
+            return jsonify({'success': True, 'message': 'Authentication successful'}), 200
+        else:
+            return jsonify({'success': False, 'message': 'Invalid authentication key'}), 401
+    else:
+        return jsonify({'success': False, 'message': 'Auth key not provided'}), 400
+
+
+@app.route('/admin')
 def home_page():  # home page
     return render_template('index.html')
 
@@ -73,6 +90,10 @@ def create():
     # extract candidate_name and candidate_email from query
     candidate_name = request.args.get('candidate_name')[:20]
     candidate_email = request.args.get('candidate_email')
+    auth_key = request.args.get('auth_key')
+
+    if auth_key != AUTH_KEY:
+        return jsonify({'success': False, 'message': 'Invalid authentication key'}), 401
     # generate a unique id for the candidate
     candidate_id = uuid.uuid4().hex
 
@@ -125,52 +146,31 @@ def get_certificate(candidate_id):
 def search_certificate():
     search_type = request.args.get('type')
     query = request.args.get('query')
+    auth_key = request.args.get('auth_key')
+    if auth_key != AUTH_KEY:
+        return jsonify({'success': False, 'message': 'Invalid authentication key'}), 401
+    if not search_type or not query:
+        return jsonify({'error': 'Missing search type or query'}), 400
+
+    collection_ref = db.collection('candidates')
 
     if search_type == 'id':
-        # Search by candidate_id
-        doc_ref = db.collection('candidates').document(query)
-        doc = doc_ref.get()
+        doc = collection_ref.document(query).get()
         if doc.exists:
-            doc_data = doc.to_dict()
-            return jsonify([{
-                'candidate_name': doc_data['candidate_name'],
-                'candidate_email': doc_data['candidate_email'],
-                'certificate_url': doc_data['certificate_url'],
-                'local_url': doc_data['local_url']
-            }])
-    elif search_type == 'name':
-        # Search by candidate_name with partial matching
-        query_ref = db.collection('candidates').where('candidate_name', '>=', query).where('candidate_name', '<=',
-                                                                                           query + '\uf8ff').stream()
-        results = []
-        for doc in query_ref:
-            doc_data = doc.to_dict()
-            results.append({
-                'candidate_name': doc_data['candidate_name'],
-                'candidate_email': doc_data['candidate_email'],
-                'certificate_url': doc_data['certificate_url'],
-                'local_url': doc_data['local_url']
-            })
+            return jsonify([doc.to_dict()])
+        return jsonify([])
+
+    elif search_type in ['name', 'email']:
+        field = f'candidate_{search_type}'
+        docs = collection_ref.where(filter=FieldFilter(field, ">=", query)).where(
+            filter=FieldFilter(field, "<=", query + '\uf8ff')).limit(10).stream()
+
+        results = [doc.to_dict() for doc in docs]
         return jsonify(results)
-    elif search_type == 'email':
-        # Search by candidate_email with partial matching
-        query_ref = db.collection('candidates').where('candidate_email', '>=', query).where('candidate_email', '<=',
-                                                                                            query + '\uf8ff').stream()
-        results = []
-        for doc in query_ref:
-            doc_data = doc.to_dict()
-            results.append({
-                'candidate_name': doc_data['candidate_name'],
-                'candidate_email': doc_data['candidate_email'],
-                'certificate_url': doc_data['certificate_url'],
-                'local_url': doc_data['local_url']
-            })
-        return jsonify(results)
+
     else:
         return jsonify({'error': 'Invalid search type'}), 400
 
-    return jsonify([])
-
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
